@@ -17,188 +17,188 @@ The code is at this time still a work in progress and not so generic that it can
 
 **Extending Zend_Db_Table:**
 
-  <?php
-   
-  abstract class Plano_Db_Table_Abstract extends Zend_Db_Table
-  {
-      /**
-       * Generate model by examining the DB structure (if not done already)
-       *
-       * @return void
-       */
-      public function setupMapperPattern()
-      {
-          $this->_createModel()
-              ->_createMapper();
+    <?php
+     
+    abstract class Plano_Db_Table_Abstract extends Zend_Db_Table
+    {
+        /**
+         * Generate model by examining the DB structure (if not done already)
+         *
+         * @return void
+         */
+        public function setupMapperPattern()
+        {
+            $this->_createModel()
+                ->_createMapper();
+        }
+     
+        /**
+         * Create model file
+         *
+         * @return Plano_Db_Table_Abstract
+         */
+        private function _createModel()
+        {
+            $reflectionClass = new ReflectionClass(get_class($this));
+            if ($reflectionClass->isAbstract()) return false;
+     
+            $fields = $this->info(Zend_Db_Table::METADATA);
+     
+            $class = new Zend_CodeGenerator_Php_Class();
+            $docblock = new Zend_CodeGenerator_Php_Docblock(array(
+                'shortDescription' => 'Automatically generated data model',
+                'longDescription' => 'This class has been automatically generated based on the dbTable "' . $this->info(Zend_Db_Table::NAME) . '" @ ' . strftime('%d-%m-%Y %H:%M')
+            ));
+     
+            $modelClassName = preg_replace('/_DbTable/', '', get_class($this));
+     
+            $class->setName($modelClassName)
+                ->setDocblock($docblock)
+                ->setExtendedClass('Plano_Model_Abstract');
+     
+            $filter = new Zend_Filter_Word_UnderscoreToCamelCase();
+     
+            foreach ($fields as $key => $meta)
+            {
+                $propertyName = $filter->filter($key);
+                $class
+                    // Property
+                    ->setProperty(array(
+                        'name' => lcfirst($propertyName),
+                        'visibility' => 'protected',
+                        'defaultValue' => (isset($meta['DEFAULT']) && $meta['DEFAULT'] != '') ? $meta['DEFAULT'] : new Zend_CodeGenerator_Php_Property_DefaultValue("null"),
+                        'docblock' => array(
+                            'shortDescription' => 'Automatically generated from db'
+                        )
+                    ))
+                    // Setter method
+                    ->setMethod(array(
+                        'name' => 'set' . ucfirst($propertyName),
+                        'parameters' => array(
+                            array('name' => 'value')
+                        ),
+                        'body' => '$this->' . lcfirst($propertyName) . ' = $value;' . "\n" . 'return $this;',
+                        'docblock' => new Zend_CodeGenerator_Php_Docblock(array(
+                            'shortDescription' => 'Set the ' . lcfirst($propertyName) . ' property',
+                            'tags' => array(
+                                new Zend_CodeGenerator_Php_Docblock_Tag_Param(array(
+                                    'paramName' => 'value',
+                                    'datatype' => 'string'
+                                )),
+                                new Zend_CodeGenerator_Php_Docblock_Tag_Return(array(
+                                    'datatype' => $modelClassName
+                                ))
+                            )
+                        ))
+                    ))
+                    // Getter method
+                    ->setMethod(array(
+                        'name' => 'get' . ucfirst($propertyName),
+                        'body' => 'return $this->' . lcfirst($propertyName) . ';',
+                        'docblock' => new Zend_CodeGenerator_Php_Docblock(array(
+                            'shortDescription' => 'Get the ' . lcfirst($propertyName) . ' property',
+                            'tags' => array(
+                                new Zend_CodeGenerator_Php_Docblock_Tag_Return(array(
+                                    'datatype' => 'string'
+                                ))
+                            )
+                        ))
+                    ));
+            }
+     
+            $class->setProperty(array(
+                'name' => 'installed',
+                'visibility' => 'public',
+                'docblock' => 'Installed flag. Remove to regenerate.',
+                'defaultValue' => 1
+            ));
+     
+            $front = Zend_Controller_Front::getInstance();
+            $exploded = explode('_', $modelClassName);
+            unset($exploded[0]); // module prefix
+            unset($exploded[1]); // model prefix
+            $model = implode('_', $exploded);
+            $path = $front->getModuleDirectory() . DIRECTORY_SEPARATOR . 'models' . DIRECTORY_SEPARATOR . str_replace('_', DIRECTORY_SEPARATOR, $model) . '.php';
+     
+            $file = new Zend_CodeGenerator_Php_File(array(
+                'classes' => array($class)
+            ));
+            file_put_contents($path, $file->generate());
+     
+            return $this;
+        }
+     
+        /**
+         * Create model file
+         *
+         * @return Plano_Db_Table_Abstract
+         */
+        private function _createMapper()
+        {
+            $reflectionClass = new ReflectionClass(get_class($this));
+            if ($reflectionClass->isAbstract()) return false;
+     
+            $fields = $this->info(Zend_Db_Table::METADATA);
+     
+            $class = new Zend_CodeGenerator_Php_Class();
+            $docblock = new Zend_CodeGenerator_Php_Docblock(array(
+                'shortDescription' => 'Automatically generated data mapper',
+                'longDescription' => 'This class has been automatically generated based on the dbTable "' . $this->info(Zend_Db_Table::NAME) . '" @ ' . strftime('%d-%m-%Y %H:%M')
+            ));
+     
+            $modelClassName = preg_replace('/_DbTable/', '', get_class($this) . '_Mapper');
+     
+            $class->setName($modelClassName)
+                ->setDocblock($docblock)
+                ->setExtendedClass('Plano_Model_Mapper_Db');
+     
+            $filter = new Zend_Filter_Word_UnderscoreToCamelCase();
+     
+            $class->setProperty(array(
+                'name' => '_dbTable',
+                'defaultValue' => get_class($this),
+                'visibility' => 'protected',
+                'docblock' => array(
+                    'shortDescription' => 'Db Table'
+                )
+            ));
+     
+            if (array_key_exists('deleted', $fields))
+            {
+                $class->setProperty(array(
+                    'name' => '_deletedColumn',
+                    'defaultValue' => 'deleted',
+                    'visibility' => 'protected',
+                    'docblock' => array(
+                        'shortDescription' => 'Deleted column'
+                    )
+                ));
+            }
+     
+            $front = Zend_Controller_Front::getInstance();
+            $exploded = explode('_', $modelClassName);
+            unset($exploded[0]); // module prefix
+            unset($exploded[1]); // model prefix
+            $model = implode('_', $exploded);
+     
+            $dir = $front->getModuleDirectory() . DIRECTORY_SEPARATOR . 'models' . DIRECTORY_SEPARATOR . $exploded[2];
+     
+            if (!is_dir($dir))
+            {
+                mkdir($dir, 0755, true);
+            }
+     
+            $path = $dir . DIRECTORY_SEPARATOR . $exploded[3] . '.php';
+     
+            $file = new Zend_CodeGenerator_Php_File(array(
+                'classes' => array($class)
+            ));
+            file_put_contents($path, $file->generate());
+     
+            return $this;
+        }
       }
-   
-      /**
-       * Create model file
-       *
-       * @return Plano_Db_Table_Abstract
-       */
-      private function _createModel()
-      {
-          $reflectionClass = new ReflectionClass(get_class($this));
-          if ($reflectionClass->isAbstract()) return false;
-   
-          $fields = $this->info(Zend_Db_Table::METADATA);
-   
-          $class = new Zend_CodeGenerator_Php_Class();
-          $docblock = new Zend_CodeGenerator_Php_Docblock(array(
-              'shortDescription' => 'Automatically generated data model',
-              'longDescription' => 'This class has been automatically generated based on the dbTable "' . $this->info(Zend_Db_Table::NAME) . '" @ ' . strftime('%d-%m-%Y %H:%M')
-          ));
-   
-          $modelClassName = preg_replace('/_DbTable/', '', get_class($this));
-   
-          $class->setName($modelClassName)
-              ->setDocblock($docblock)
-              ->setExtendedClass('Plano_Model_Abstract');
-   
-          $filter = new Zend_Filter_Word_UnderscoreToCamelCase();
-   
-          foreach ($fields as $key => $meta)
-          {
-              $propertyName = $filter->filter($key);
-              $class
-                  // Property
-                  ->setProperty(array(
-                      'name' => lcfirst($propertyName),
-                      'visibility' => 'protected',
-                      'defaultValue' => (isset($meta['DEFAULT']) && $meta['DEFAULT'] != '') ? $meta['DEFAULT'] : new Zend_CodeGenerator_Php_Property_DefaultValue("null"),
-                      'docblock' => array(
-                          'shortDescription' => 'Automatically generated from db'
-                      )
-                  ))
-                  // Setter method
-                  ->setMethod(array(
-                      'name' => 'set' . ucfirst($propertyName),
-                      'parameters' => array(
-                          array('name' => 'value')
-                      ),
-                      'body' => '$this->' . lcfirst($propertyName) . ' = $value;' . "\n" . 'return $this;',
-                      'docblock' => new Zend_CodeGenerator_Php_Docblock(array(
-                          'shortDescription' => 'Set the ' . lcfirst($propertyName) . ' property',
-                          'tags' => array(
-                              new Zend_CodeGenerator_Php_Docblock_Tag_Param(array(
-                                  'paramName' => 'value',
-                                  'datatype' => 'string'
-                              )),
-                              new Zend_CodeGenerator_Php_Docblock_Tag_Return(array(
-                                  'datatype' => $modelClassName
-                              ))
-                          )
-                      ))
-                  ))
-                  // Getter method
-                  ->setMethod(array(
-                      'name' => 'get' . ucfirst($propertyName),
-                      'body' => 'return $this->' . lcfirst($propertyName) . ';',
-                      'docblock' => new Zend_CodeGenerator_Php_Docblock(array(
-                          'shortDescription' => 'Get the ' . lcfirst($propertyName) . ' property',
-                          'tags' => array(
-                              new Zend_CodeGenerator_Php_Docblock_Tag_Return(array(
-                                  'datatype' => 'string'
-                              ))
-                          )
-                      ))
-                  ));
-          }
-   
-          $class->setProperty(array(
-              'name' => 'installed',
-              'visibility' => 'public',
-              'docblock' => 'Installed flag. Remove to regenerate.',
-              'defaultValue' => 1
-          ));
-   
-          $front = Zend_Controller_Front::getInstance();
-          $exploded = explode('_', $modelClassName);
-          unset($exploded[0]); // module prefix
-          unset($exploded[1]); // model prefix
-          $model = implode('_', $exploded);
-          $path = $front->getModuleDirectory() . DIRECTORY_SEPARATOR . 'models' . DIRECTORY_SEPARATOR . str_replace('_', DIRECTORY_SEPARATOR, $model) . '.php';
-   
-          $file = new Zend_CodeGenerator_Php_File(array(
-              'classes' => array($class)
-          ));
-          file_put_contents($path, $file->generate());
-   
-          return $this;
-      }
-   
-      /**
-       * Create model file
-       *
-       * @return Plano_Db_Table_Abstract
-       */
-      private function _createMapper()
-      {
-          $reflectionClass = new ReflectionClass(get_class($this));
-          if ($reflectionClass->isAbstract()) return false;
-   
-          $fields = $this->info(Zend_Db_Table::METADATA);
-   
-          $class = new Zend_CodeGenerator_Php_Class();
-          $docblock = new Zend_CodeGenerator_Php_Docblock(array(
-              'shortDescription' => 'Automatically generated data mapper',
-              'longDescription' => 'This class has been automatically generated based on the dbTable "' . $this->info(Zend_Db_Table::NAME) . '" @ ' . strftime('%d-%m-%Y %H:%M')
-          ));
-   
-          $modelClassName = preg_replace('/_DbTable/', '', get_class($this) . '_Mapper');
-   
-          $class->setName($modelClassName)
-              ->setDocblock($docblock)
-              ->setExtendedClass('Plano_Model_Mapper_Db');
-   
-          $filter = new Zend_Filter_Word_UnderscoreToCamelCase();
-   
-          $class->setProperty(array(
-              'name' => '_dbTable',
-              'defaultValue' => get_class($this),
-              'visibility' => 'protected',
-              'docblock' => array(
-                  'shortDescription' => 'Db Table'
-              )
-          ));
-   
-          if (array_key_exists('deleted', $fields))
-          {
-              $class->setProperty(array(
-                  'name' => '_deletedColumn',
-                  'defaultValue' => 'deleted',
-                  'visibility' => 'protected',
-                  'docblock' => array(
-                      'shortDescription' => 'Deleted column'
-                  )
-              ));
-          }
-   
-          $front = Zend_Controller_Front::getInstance();
-          $exploded = explode('_', $modelClassName);
-          unset($exploded[0]); // module prefix
-          unset($exploded[1]); // model prefix
-          $model = implode('_', $exploded);
-   
-          $dir = $front->getModuleDirectory() . DIRECTORY_SEPARATOR . 'models' . DIRECTORY_SEPARATOR . $exploded[2];
-   
-          if (!is_dir($dir))
-          {
-              mkdir($dir, 0755, true);
-          }
-   
-          $path = $dir . DIRECTORY_SEPARATOR . $exploded[3] . '.php';
-   
-          $file = new Zend_CodeGenerator_Php_File(array(
-              'classes' => array($class)
-          ));
-          file_put_contents($path, $file->generate());
-   
-          return $this;
-      }
-  	}
-    
+      
 **What this code does:**
 
 - First of all, it assumes you put the a DbTable class somewhere inside modules/yourmodule/models/DbTable/Class.php and you have the table name defined
