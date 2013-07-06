@@ -1,6 +1,6 @@
 ---
 published: true
-layout: default
+layout: post
 ---
 
 ## Using Zend_CodeGenerator to generate a Data Mapper
