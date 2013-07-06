@@ -1,6 +1,6 @@
 ---
 published: true
-layout: default
+layout: post
 ---
 
 ## Using Zend Framework’s router to setup ACL role-based controllers
