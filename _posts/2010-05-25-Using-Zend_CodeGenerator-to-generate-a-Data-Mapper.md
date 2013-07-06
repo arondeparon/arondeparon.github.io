@@ -1,7 +1,9 @@
 ---
-published: false
+published: true
 layout: default
 ---
+
+## Using Zend_CodeGenerator to generate a Data Mapper
 
 I have always liked the Data Mapper pattern example [ZF Quickstart’s model creation](http://framework.zend.com/manual/en/learning.quickstart.create-model.html) section but have never actually used it in one of my applications.
 
