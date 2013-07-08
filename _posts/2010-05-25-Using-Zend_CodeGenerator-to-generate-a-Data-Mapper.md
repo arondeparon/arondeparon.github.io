@@ -13,7 +13,7 @@ The worst thing is that these getters and setters don’t do anything special. I
 
 So, being lazy and all, I have decided to make this job a bit easier by extending the Zend_Db_Table class with functionality that allows me to write the Mapper and Model for me. This was also a good moment to examine the capabilities of [Zend_CodeGenerator](http://framework.zend.com/manual/en/zend.codegenerator.html).
 
-The code is at this time still a work in progress and not so generic that it can be copied straid into your application, but should it reach that point, I will make it available for download here. For now, I hope a short roundup of how I did can inspire you to do something similiar.
+The code is at this time still a work in progress and not so generic that it can be copied straight into your application, but should it reach that point, I will make it available for download here. For now, I hope a short roundup of how I did can inspire you to do something similiar.
 
 **Extending Zend_Db_Table:**
 
